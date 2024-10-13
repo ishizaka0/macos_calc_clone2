@@ -25,6 +25,7 @@ const Calculator = styled('div')({
   borderRadius: '10px',
   padding: '10px',
   boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+  position: 'relative',
 });
 
 const Display = styled(Typography)({
@@ -78,6 +79,20 @@ const ButtonStyled = styled(Button)({
   },
 });
 
+const WindowControls = styled('div')({
+  display: 'flex',
+  gap: '8px',
+  marginBottom: '10px',
+});
+
+const ControlButton = styled('div')(({ color }: { color: string }) => ({
+  width: '12px',
+  height: '12px',
+  backgroundColor: color,
+  borderRadius: '50%',
+  cursor: 'pointer',
+}));
+
 const Page = () => {
   const [displayValue, setDisplayValue] = useState('0');
   const [history, setHistory] = useState<string[]>([]);
@@ -101,7 +116,12 @@ const Page = () => {
         setDisplayValue('Error');
       }
     } else if (label === '±') {
-      setDisplayValue((prev) => (prev.startsWith('-') ? prev.slice(1) : '-' + prev));
+      setDisplayValue((prev) => {
+        if (prev === '0' || prev === '') {
+          return prev; // 0や空の場合はそのまま
+        }
+        return prev.startsWith('-') ? prev.slice(1) : '-' + prev;
+      });
     } else if (label === '%') {
       setDisplayValue((prev) => {
         const expression = prev.replace(/,/g, '').replace('×', '*').replace('÷', '/');
@@ -143,9 +163,34 @@ const Page = () => {
     }
   };
 
+  const handleWindowControl = (action: string) => {
+    switch (action) {
+      case 'close':
+        window.open('', '_self')?.close();
+        break;
+      case 'reload':
+        window.location.reload();
+        break;
+      case 'fullscreen':
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen();
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <CalculatorContainer>
       <Calculator>
+        <WindowControls>
+          <ControlButton color="#ff5f56" onClick={() => handleWindowControl('close')} />
+          <ControlButton color="#ffbd2e" onClick={() => handleWindowControl('reload')} />
+          <ControlButton color="#27c93f" onClick={() => handleWindowControl('fullscreen')} />
+        </WindowControls>
         <Display>{displayValue}</Display>
         <History>
           {history.map((entry, index) => (
