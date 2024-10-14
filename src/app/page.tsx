@@ -235,7 +235,7 @@ const Page = () => {
         </History>
         <Grid container spacing={0}>
           {['AC', '±', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '-', '1', '2', '3', '+', '0', '000', '.', '='].map((label, index) => (
-            <Grid item xs={label === '0' || label === '000' ? 6 : 3} key={index}>
+            <Grid item xs={label === '0' || label === '000' ? 3 : 3} key={index}>
               <ButtonStyled
                 variant="contained"
                 className={`${['÷', '×', '-', '+', '='].includes(label) ? 'operator' : ''} ${['AC', '±', '%'].includes(label) ? 'dark-gray' : ''} ${['0', '000', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'].includes(label) ? 'light-gray' : ''}`}
