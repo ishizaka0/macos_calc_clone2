@@ -2,6 +2,15 @@
 - CLINEでAIにお願いして作ったもの
 - 今回は独自のワークフローを用いている：未ドキュメント化
 
+<div align="center">
+
+![alt text](ss2.png)
+
+</div>
+
+# 動作デモ
+- https://macos-calc-clone2.vercel.app/
+
 # v0の時と同じステップで
 - next.jsで電卓を作りたいです。
 - 配色は、macosの添付画像の色と、キーボード配列にしてください。ss.png
