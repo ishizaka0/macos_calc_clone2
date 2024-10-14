@@ -1,3 +1,5 @@
+// src/app/page.tsx
+
 "use client";
 
 import React, { useState } from 'react';
@@ -36,6 +38,7 @@ const Display = styled(Typography)({
   padding: '10px',
   borderRadius: '5px',
   marginBottom: '10px',
+  wordWrap: 'break-word', // 長い数字を折り返す
 });
 
 const History = styled('div')({
@@ -95,45 +98,78 @@ const ControlButton = styled('div')(({ color }: { color: string }) => ({
 
 const Page = () => {
   const [displayValue, setDisplayValue] = useState('0');
+  const [currentExpression, setCurrentExpression] = useState('');
   const [history, setHistory] = useState<string[]>([]);
 
   const formatNumber = (num: string) => {
-    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const parts = num.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  };
+
+  const evaluateExpression = (expr: string): number => {
+    // Remove commas
+    expr = expr.replace(/,/g, '');
+
+    // Replace '×' and '÷' with '*' and '/'
+    expr = expr.replace(/×/g, '*').replace(/÷/g, '/');
+
+    // Handle percentages
+    expr = expr.replace(/(\d+(\.\d+)?)([+\-*/])(\d+(\.\d+)?)%/g, (match, num1, _, operator, num2) => {
+      const percentageValue = parseFloat(num1) * (parseFloat(num2) / 100);
+      return `${num1}${operator}${percentageValue}`;
+    });
+
+    // Evaluate the expression
+    const result = eval(expr);
+
+    return result;
   };
 
   const handleButtonClick = (label: string) => {
     if (label === 'AC') {
       setDisplayValue('0');
+      setCurrentExpression('');
     } else if (['+', '-', '×', '÷'].includes(label)) {
-      setDisplayValue((prev) => prev + label);
+      // Append current displayValue and operator to currentExpression
+      setCurrentExpression((prev) => prev + displayValue + label);
+      setDisplayValue('0');
     } else if (label === '=') {
       try {
-        const expression = displayValue.replace(/,/g, '').replace('×', '*').replace('÷', '/');
-        const result = eval(expression);
-        setDisplayValue(formatNumber(result.toString()));
-        setHistory((prev) => [...prev, `${displayValue} = ${formatNumber(result.toString())}`]);
+        const expression = currentExpression + displayValue;
+        const result = evaluateExpression(expression);
+        const formattedResult = formatNumber(result.toString());
+        setDisplayValue(formattedResult);
+        setHistory((prev) => [...prev, `${formatNumber(expression)} = ${formattedResult}`]);
+        setCurrentExpression('');
       } catch {
         setDisplayValue('Error');
+        setCurrentExpression('');
       }
     } else if (label === '±') {
       setDisplayValue((prev) => {
         if (prev === '0' || prev === '') {
-          return prev; // 0や空の場合はそのまま
+          return prev;
         }
-        return prev.startsWith('-') ? prev.slice(1) : '-' + prev;
+        const newValue = prev.startsWith('-') ? prev.slice(1) : '-' + prev;
+        return newValue;
       });
     } else if (label === '%') {
       setDisplayValue((prev) => {
-        const expression = prev.replace(/,/g, '').replace('×', '*').replace('÷', '/');
-        const result = eval(expression) / 100;
-        return formatNumber(result.toString());
+        if (prev.includes('%')) {
+          return prev; // 既に%がある場合は何もしない
+        }
+        return prev + '%';
       });
     } else if (label === '000') {
-      setDisplayValue((prev) => (prev === '0' ? '000' : prev + '000'));
+      setDisplayValue((prev) => {
+        const newValue = prev === '0' ? '000' : prev + '000';
+        return newValue;
+      });
     } else {
       setDisplayValue((prev) => {
         const newValue = prev === '0' ? label : prev + label;
-        return formatNumber(newValue.replace(/,/g, ''));
+        return newValue;
       });
     }
   };
@@ -191,7 +227,7 @@ const Page = () => {
           <ControlButton color="#ffbd2e" onClick={() => handleWindowControl('reload')} />
           <ControlButton color="#27c93f" onClick={() => handleWindowControl('fullscreen')} />
         </WindowControls>
-        <Display>{displayValue}</Display>
+        <Display>{formatNumber(displayValue)}</Display>
         <History>
           {history.map((entry, index) => (
             <div key={index}>{entry}</div>
@@ -199,10 +235,10 @@ const Page = () => {
         </History>
         <Grid container spacing={0}>
           {['AC', '±', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '-', '1', '2', '3', '+', '0', '000', '.', '='].map((label, index) => (
-            <Grid item xs={label === '0' || label === '000' ? 3 : 3} key={index}>
+            <Grid item xs={label === '0' || label === '000' ? 6 : 3} key={index}>
               <ButtonStyled
                 variant="contained"
-                className={`${['÷', '×', '-', '+', '='].includes(label) ? 'operator' : ''} ${['AC', '±', '%'].includes(label) ? 'dark-gray' : ''} ${['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].includes(label) ? 'light-gray' : ''}`}
+                className={`${['÷', '×', '-', '+', '='].includes(label) ? 'operator' : ''} ${['AC', '±', '%'].includes(label) ? 'dark-gray' : ''} ${['0', '000', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'].includes(label) ? 'light-gray' : ''}`}
                 onClick={() => handleButtonClick(label)}
               >
                 {renderIcon(label)}
