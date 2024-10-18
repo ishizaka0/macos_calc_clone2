@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Grid, Typography } from '@mui/material';
 import { styled } from '@mui/system';
-import { mdiAirConditioner, mdiNumeric0BoxMultipleOutline, mdiDivision } from '@mdi/js'; // Changed mdiFormatVerticalAlignCenter to mdiDivision
+import { mdiAirConditioner, mdiNumeric0BoxMultipleOutline, mdiDivision } from '@mdi/js';
 import Icon from '@mdi/react';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -36,8 +36,36 @@ const Display = styled(Typography)({
   padding: '10px',
   borderRadius: '5px',
   marginBottom: '10px',
-  wordWrap: 'break-word', // 長い数字を折り返す
+  wordWrap: 'break-word',
+  userSelect: 'text',
+  cursor: 'text',
 });
+
+const CopyButton = styled(Button)({
+  color: '#fff',
+  minWidth: 'auto',
+  padding: '6px 8px',
+  fontSize: '0.6rem',
+  backgroundColor: 'transparent',
+  '&:hover': {
+    backgroundColor: '#555',
+  },
+});
+
+const WindowControls = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  marginBottom: '10px',
+});
+
+const ControlButton = styled('div')(({ color }: { color: string }) => ({
+  width: '12px',
+  height: '12px',
+  backgroundColor: color,
+  borderRadius: '50%',
+  cursor: 'pointer',
+}));
 
 const History = styled('div')({
   backgroundColor: '#222',
@@ -67,37 +95,25 @@ const ButtonStyled = styled(Button)({
     flex: '2 0 46%',
   },
   '&.small': {
-    fontSize: '0.9rem', // Smaller font size for specific buttons
+    fontSize: '0.9rem',
   },
   '& .MuiSvgIcon-root': {
-    fontSize: '1rem', // Smaller icon size for non-numeric buttons
+    fontSize: '1rem',
   },
   '&.dark-gray': {
-    backgroundColor: '#555', // Dark gray for AC, ±, %
+    backgroundColor: '#555',
   },
   '&.light-gray': {
-    backgroundColor: '#888', // Light gray for numbers
+    backgroundColor: '#888',
   },
 });
-
-const WindowControls = styled('div')({
-  display: 'flex',
-  gap: '8px',
-  marginBottom: '10px',
-});
-
-const ControlButton = styled('div')(({ color }: { color: string }) => ({
-  width: '12px',
-  height: '12px',
-  backgroundColor: color,
-  borderRadius: '50%',
-  cursor: 'pointer',
-}));
 
 const Page = () => {
   const [displayValue, setDisplayValue] = useState('0');
   const [currentExpression, setCurrentExpression] = useState('');
   const [history, setHistory] = useState<string[]>([]);
+  const [justEvaluated, setJustEvaluated] = useState(false);
+  const [lastOperator, setLastOperator] = useState('');
 
   const formatNumber = (num: string) => {
     const parts = num.split('.');
@@ -106,21 +122,13 @@ const Page = () => {
   };
 
   const evaluateExpression = (expr: string): number => {
-    // Remove commas
     expr = expr.replace(/,/g, '');
-
-    // Replace '×' and '÷' with '*' and '/'
     expr = expr.replace(/×/g, '*').replace(/÷/g, '/');
-
-    // Handle percentages
     expr = expr.replace(/(\d+(\.\d+)?)([+\-*/])(\d+(\.\d+)?)%/g, (match, num1, _, operator, num2) => {
       const percentageValue = parseFloat(num1) * (parseFloat(num2) / 100);
       return `${num1}${operator}${percentageValue}`;
     });
-
-    // Evaluate the expression
     const result = eval(expr);
-
     return result;
   };
 
@@ -128,10 +136,16 @@ const Page = () => {
     if (label === 'AC') {
       setDisplayValue('0');
       setCurrentExpression('');
+      setLastOperator('');
     } else if (['+', '-', '×', '÷'].includes(label)) {
-      // Append current displayValue and operator to currentExpression
-      setCurrentExpression((prev) => prev + displayValue + label);
-      setDisplayValue('0');
+      if (lastOperator) {
+        // 既に演算子が押されている場合、演算子を置き換える
+        setCurrentExpression((prev) => prev.slice(0, -1) + label);
+      } else {
+        setCurrentExpression((prev) => prev + displayValue + label);
+      }
+      setLastOperator(label);
+      setJustEvaluated(false);
     } else if (label === '=') {
       try {
         const expression = currentExpression + displayValue;
@@ -140,9 +154,12 @@ const Page = () => {
         setDisplayValue(formattedResult);
         setHistory((prev) => [...prev, `${formatNumber(expression)} = ${formattedResult}`]);
         setCurrentExpression('');
+        setJustEvaluated(true);
+        setLastOperator('');
       } catch {
         setDisplayValue('Error');
         setCurrentExpression('');
+        setLastOperator('');
       }
     } else if (label === '±') {
       setDisplayValue((prev) => {
@@ -155,7 +172,7 @@ const Page = () => {
     } else if (label === '%') {
       setDisplayValue((prev) => {
         if (prev.includes('%')) {
-          return prev; // 既に%がある場合は何もしない
+          return prev;
         }
         return prev + '%';
       });
@@ -164,10 +181,25 @@ const Page = () => {
         const newValue = prev === '0' ? '000' : prev + '000';
         return newValue;
       });
+    } else if (label === 'delete') {
+      setDisplayValue((prev) => {
+        if (prev.length <= 1) {
+          return '0';
+        }
+        return prev.slice(0, -1);
+      });
     } else {
       setDisplayValue((prev) => {
-        const newValue = prev === '0' ? label : prev + label;
-        return newValue;
+        if (justEvaluated) {
+          setJustEvaluated(false);
+          return label;
+        } else if (prev === '0' || lastOperator) {
+          setLastOperator('');
+          return label;
+        } else {
+          const newValue = prev + label;
+          return newValue;
+        }
       });
     }
   };
@@ -175,13 +207,13 @@ const Page = () => {
   const renderIcon = (label: string) => {
     switch (label) {
       case 'AC':
-        return <Icon path={mdiAirConditioner} size={0.8} />; // Smaller size
+        return <Icon path={mdiAirConditioner} size={0.8} />;
       case '±':
-        return '±'; // No direct icon, using text
+        return '±';
       case '%':
         return <PercentIcon />;
       case '÷':
-        return <Icon path={mdiDivision} size={0.8} />; // Changed to mdiDivision
+        return <Icon path={mdiDivision} size={0.8} />;
       case '×':
         return <CloseIcon />;
       case '-':
@@ -191,7 +223,7 @@ const Page = () => {
       case '=':
         return <DragHandleIcon />;
       case '000':
-        return <Icon path={mdiNumeric0BoxMultipleOutline} size={0.8} />; // Smaller size
+        return <Icon path={mdiNumeric0BoxMultipleOutline} size={0.8} />;
       default:
         return label;
     }
@@ -217,6 +249,76 @@ const Page = () => {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key;
+      let label = '';
+
+      if (/\d/.test(key)) {
+        label = key;
+      } else if (key === '+') {
+        label = '+';
+      } else if (key === '-') {
+        label = '-';
+      } else if (key === '*') {
+        label = '×';
+      } else if (key === '/') {
+        label = '÷';
+      } else if (key === 'Enter' || key === '=') {
+        label = '=';
+        event.preventDefault();
+      } else if (key === '.') {
+        label = '.';
+      } else if (key === '%') {
+        label = '%';
+      } else if (key === 'Backspace' || key === 'Delete') {
+        label = 'delete';
+      } else if (key.toLowerCase() === 'c' || key === 'Escape') {
+        label = 'AC';
+      } else if (key === '±') {
+        label = '±';
+      } else {
+        return;
+      }
+
+      handleButtonClick(label);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleButtonClick]);
+
+  useEffect(() => {
+    const handlePasteEvent = (event: ClipboardEvent) => {
+      handlePaste(event);
+    };
+
+    window.addEventListener('paste', handlePasteEvent);
+
+    return () => {
+      window.removeEventListener('paste', handlePasteEvent);
+    };
+  }, []);
+
+  const handlePaste = (event: ClipboardEvent | React.ClipboardEvent<HTMLSpanElement>) => {
+    event.preventDefault();
+    const clipboardData = event.clipboardData;
+    if (!clipboardData) return;
+    const pastedText = clipboardData.getData('Text');
+    const sanitizedInput = pastedText.replace(/[^\d.]/g, '');
+
+    if (sanitizedInput) {
+      setDisplayValue(sanitizedInput);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(displayValue);
+  };
+
   return (
     <CalculatorContainer>
       <Calculator>
@@ -225,7 +327,30 @@ const Page = () => {
           <ControlButton color="#ffbd2e" onClick={() => handleWindowControl('reload')} />
           <ControlButton color="#27c93f" onClick={() => handleWindowControl('fullscreen')} />
         </WindowControls>
-        <Display>{formatNumber(displayValue)}</Display>
+        <CopyButton
+          onClick={copyToClipboard}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            backgroundColor: '#888',
+            borderRadius: '5px',
+            width: '40px', // ボタンの幅を調整
+            height: '20px',
+            color: '#fff',
+            fontSize: '0.6rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          COPY
+        </CopyButton>
+        <Display
+          onPaste={handlePaste as unknown as React.ClipboardEventHandler<HTMLSpanElement>}
+        >
+          {formatNumber(displayValue)}
+        </Display>
         <History>
           {history.map((entry, index) => (
             <div key={index}>{entry}</div>
@@ -236,7 +361,13 @@ const Page = () => {
             <Grid item xs={label === '0' || label === '000' ? 3 : 3} key={index}>
               <ButtonStyled
                 variant="contained"
-                className={`${['÷', '×', '-', '+', '='].includes(label) ? 'operator' : ''} ${['AC', '±', '%'].includes(label) ? 'dark-gray' : ''} ${['0', '000', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'].includes(label) ? 'light-gray' : ''}`}
+                className={`${['÷', '×', '-', '+', '='].includes(label) ? 'operator' : ''} ${
+                  ['AC', '±', '%'].includes(label) ? 'dark-gray' : ''
+                } ${
+                  ['0', '000', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'].includes(label)
+                    ? 'light-gray'
+                    : ''
+                }`}
                 onClick={() => handleButtonClick(label)}
               >
                 {renderIcon(label)}
