@@ -525,3 +525,60 @@
 
 以上が電卓アプリの仕様書となります。この仕様書に基づいて、同様の電卓アプリケーションを構築することが可能です。追加の要件がある場合は、適宜仕様書を更新してください。
 
+## シーケンス図
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant CalculatorApp as 電卓アプリ
+    participant Display as 表示部
+    participant Clipboard as クリップボード
+
+    User->>CalculatorApp: ボタンまたはキーボードで入力
+    CalculatorApp->>Display: 入力値を更新
+    Note right of Display: displayValueを更新
+
+    User->>CalculatorApp: "="キーを押下
+    CalculatorApp->>CalculatorApp: 計算式を組み立て
+    CalculatorApp->>CalculatorApp: evaluateExpression関数を呼び出し
+    CalculatorApp-->>Display: 計算結果を表示
+    CalculatorApp->>CalculatorApp: 履歴を更新
+
+    User->>CalculatorApp: "COPY"ボタンを押下
+    CalculatorApp->>Clipboard: 計算結果をコピー
+
+    User->>CalculatorApp: 外部から数字をペースト
+    Clipboard-->>CalculatorApp: 数字を貼り付け
+    CalculatorApp->>Display: displayValueを更新
+```
+
+## ロジックフローチャート
+
+```mermaid
+flowchart TD
+    Start[開始] --> Input[ボタンまたはキー入力]
+    Input -->|数字| UpdateDisplay[displayValueに数字を追加]
+    Input -->|演算子（+,-,×,÷）| OperatorCheck{lastOperatorが存在するか？}
+    OperatorCheck -->|はい| ReplaceOperator[演算子を置き換える]
+    ReplaceOperator --> Proceed[処理続行]
+    OperatorCheck -->|いいえ| AppendExpression[currentExpressionにdisplayValueと演算子を追加]
+    AppendExpression --> Proceed
+    Proceed --> SetLastOperator[lastOperatorを更新]
+    SetLastOperator --> Continue[処理続行]
+    Input -->|"="| EvaluateExpression[計算式を評価]
+    EvaluateExpression -->|成功| UpdateDisplayResult[結果をdisplayValueに表示]
+    UpdateDisplayResult --> UpdateHistory[履歴を更新]
+    UpdateHistory --> Continue
+    EvaluateExpression -->|失敗| ShowError[displayValueに"Error"を表示]
+    ShowError --> Continue
+    Input -->|"AC"| ResetAll[displayValueとcurrentExpressionをリセット]
+    ResetAll --> Continue
+    Input -->|"±"| ToggleSign[displayValueの符号を反転]
+    ToggleSign --> Continue
+    Input -->|"%"| AddPercent[displayValueに"%"を追加]
+    AddPercent --> Continue
+    Input -->|"COPY"| CopyToClipboard[displayValueをクリップボードにコピー]
+    CopyToClipboard --> Continue
+    Input -->|その他| End[終了]
+    Continue --> End
+```
