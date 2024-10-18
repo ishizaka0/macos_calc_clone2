@@ -39,6 +39,7 @@ const Display = styled(Typography)({
   wordWrap: 'break-word',
   userSelect: 'text',
   cursor: 'text',
+  transition: 'background-color 0.3s ease',
 });
 
 const CopyButton = styled(Button)({
@@ -114,6 +115,7 @@ const Page = () => {
   const [history, setHistory] = useState<string[]>([]);
   const [justEvaluated, setJustEvaluated] = useState(false);
   const [lastOperator, setLastOperator] = useState('');
+  const [copyEffect, setCopyEffect] = useState(false);
 
   const formatNumber = (num: string) => {
     const parts = num.split('.');
@@ -271,11 +273,11 @@ const Page = () => {
     navigator.clipboard.writeText(displayValue)
       .then(() => {
         console.log('コピーに成功しました');
-        alert('コピーしました');
+        setCopyEffect(true);
+        setTimeout(() => setCopyEffect(false), 300); // 300ms後にエフェクトを解除
       })
       .catch((err) => {
         console.error('コピーに失敗しました: ', err);
-        alert('コピーに失敗しました。ブラウザの設定やHTTPS接続を確認してください。');
       });
   }, [displayValue]);
 
@@ -374,6 +376,9 @@ const Page = () => {
         </CopyButton>
         <Display
           onPaste={handlePaste as unknown as React.ClipboardEventHandler<HTMLSpanElement>}
+          style={{
+            backgroundColor: copyEffect ? '#666' : '#444', // コピー時に背景色を変更
+          }}
         >
           {formatNumber(displayValue)}
         </Display>
