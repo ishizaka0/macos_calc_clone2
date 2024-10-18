@@ -1,11 +1,9 @@
-// src/app/page.tsx
-
 "use client";
 
 import React, { useState } from 'react';
 import { Button, Grid, Typography } from '@mui/material';
 import { styled } from '@mui/system';
-import { mdiAirConditioner, mdiNumeric0BoxMultipleOutline, mdiFormatVerticalAlignCenter } from '@mdi/js';
+import { mdiAirConditioner, mdiNumeric0BoxMultipleOutline, mdiDivision } from '@mdi/js'; // Changed mdiFormatVerticalAlignCenter to mdiDivision
 import Icon from '@mdi/react';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -183,7 +181,7 @@ const Page = () => {
       case '%':
         return <PercentIcon />;
       case '÷':
-        return <Icon path={mdiFormatVerticalAlignCenter} size={0.8} />; // Smaller size
+        return <Icon path={mdiDivision} size={0.8} />; // Changed to mdiDivision
       case '×':
         return <CloseIcon />;
       case '-':
