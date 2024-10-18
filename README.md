@@ -569,13 +569,13 @@ flowchart TD
     EvaluateExpression -->|成功| UpdateDisplayResult[結果をdisplayValueに表示]
     UpdateDisplayResult --> UpdateHistory[履歴を更新]
     UpdateHistory --> Continue
-    EvaluateExpression -->|失敗| ShowError[displayValueに"Error"を表示]
+    EvaluateExpression -->|失敗| ShowError[displayValueに'Error'を表示]
     ShowError --> Continue
     Input -->|"AC"| ResetAll[displayValueとcurrentExpressionをリセット]
     ResetAll --> Continue
     Input -->|"±"| ToggleSign[displayValueの符号を反転]
     ToggleSign --> Continue
-    Input -->|"%"| AddPercent[displayValueに"%"を追加]
+    Input -->|"%"| AddPercent[displayValueに'%'を追加]
     AddPercent --> Continue
     Input -->|"COPY"| CopyToClipboard[displayValueをクリップボードにコピー]
     CopyToClipboard --> Continue
