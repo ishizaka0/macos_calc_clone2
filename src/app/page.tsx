@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Grid, Typography } from '@mui/material';
 import { styled } from '@mui/system';
 import { mdiAirConditioner, mdiNumeric0BoxMultipleOutline, mdiDivision } from '@mdi/js';
@@ -124,10 +124,27 @@ const Page = () => {
   const evaluateExpression = (expr: string): number => {
     expr = expr.replace(/,/g, '');
     expr = expr.replace(/×/g, '*').replace(/÷/g, '/');
-    expr = expr.replace(/(\d+(\.\d+)?)([+\-*/])(\d+(\.\d+)?)%/g, (match, num1, _, operator, num2) => {
-      const percentageValue = parseFloat(num1) * (parseFloat(num2) / 100);
-      return `${num1}${operator}${percentageValue}`;
+
+    // 演算子に応じた百分率の処理
+    expr = expr.replace(/(\d+(?:\.\d+)?)([+\-*/])(\d+(?:\.\d+)?)%/g, (match, num1, operator, num2) => {
+      let percentageValue;
+      if (operator === '+' || operator === '-') {
+        // 加算・減算の場合
+        percentageValue = parseFloat(num1) * (parseFloat(num2) / 100);
+        return `${num1}${operator}${percentageValue}`;
+      } else if (operator === '*' || operator === '/') {
+        // 乗算・除算の場合
+        percentageValue = parseFloat(num2) / 100;
+        return `${num1}${operator}${percentageValue}`;
+      }
+      return match; // その他の場合はそのまま
     });
+
+    // スタンドアロンの百分率の処理
+    expr = expr.replace(/(\d+(?:\.\d+)?)%/g, (match, num) => {
+      return (parseFloat(num) / 100).toString();
+    });
+
     const result = eval(expr);
     return result;
   };
@@ -249,6 +266,19 @@ const Page = () => {
     }
   };
 
+  const copyToClipboard = useCallback(() => {
+    console.log('copyToClipboard関数が呼び出されました');
+    navigator.clipboard.writeText(displayValue)
+      .then(() => {
+        console.log('コピーに成功しました');
+        alert('コピーしました');
+      })
+      .catch((err) => {
+        console.error('コピーに失敗しました: ', err);
+        alert('コピーに失敗しました。ブラウザの設定やHTTPS接続を確認してください。');
+      });
+  }, [displayValue]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key;
@@ -315,10 +345,6 @@ const Page = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(displayValue);
-  };
-
   return (
     <CalculatorContainer>
       <Calculator>
@@ -335,7 +361,7 @@ const Page = () => {
             right: '10px',
             backgroundColor: '#888',
             borderRadius: '5px',
-            width: '40px', // ボタンの幅を調整
+            width: '40px',
             height: '20px',
             color: '#fff',
             fontSize: '0.6rem',
